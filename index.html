@@ -17,6 +17,9 @@
   --glass: rgba(255, 255, 255, 0.1);
   --glass-border: rgba(255, 255, 255, 0.25);
   --glass-hover: rgba(255, 255, 255, 0.2);
+  --red: #ff0000;
+  --red-light: #ff3333;
+  --red-dark: #cc0000;
 }
 
 * {
@@ -116,6 +119,28 @@ body::before {
   letter-spacing: 1px;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   margin-bottom: 10px;
+  position: relative;
+}
+
+.sale-badge {
+  position: absolute;
+  top: -15px;
+  right: 10px;
+  background: linear-gradient(45deg, var(--red), #ff6a00);
+  color: white;
+  font-weight: bold;
+  padding: 8px 15px;
+  border-radius: 30px;
+  font-size: 16px;
+  box-shadow: 0 4px 12px rgba(255, 0, 0, 0.4);
+  z-index: 10;
+  animation: pulse-red 1.5s infinite;
+}
+
+@keyframes pulse-red {
+  0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(255, 0, 0, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); }
 }
 
 .head p {
@@ -126,41 +151,63 @@ body::before {
   letter-spacing: 1px;
 }
 
+.countdown-title {
+  text-align: center;
+  font-size: 26px;
+  color: var(--red);
+  margin-bottom: 15px;
+  font-weight: bold;
+  text-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+  animation: flash 1s infinite;
+}
+
+@keyframes flash {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
 .countdown-box {
   display: flex;
   gap: 20px;
   justify-content: center;
   margin-bottom: 40px;
   flex-wrap: wrap;
+  position: relative;
+  padding: 25px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 20px;
+  border: 2px solid var(--gold);
+  box-shadow: 0 0 20px rgba(245, 197, 66, 0.3);
 }
 
 .count-card {
-  background: linear-gradient(145deg, rgba(0,77,64,0.4), rgba(0,37,26,0.6));
-  border: 1px solid var(--gold);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  background: linear-gradient(145deg, var(--red), var(--red-dark));
+  border: 2px solid #ffd700;
+  box-shadow: 0 6px 20px rgba(255, 0, 0, 0.4);
   border-radius: 16px;
-  padding: 18px 12px;
-  width: 100px;
+  padding: 20px 12px;
+  width: 110px;
   text-align: center;
   transition: all 0.3s ease;
+  animation: bounce 2s infinite;
 }
 
-.count-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-  background: linear-gradient(145deg, rgba(0,77,64,0.5), rgba(0,37,26,0.7));
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
 }
 
 .count-num {
-  font-size: 36px;
+  font-size: 40px;
   font-weight: 800;
-  color: var(--gold-light);
-  text-shadow: 0 0 10px rgba(245, 197, 66, 0.3);
+  color: white;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 }
 
 .count-label {
-  font-size: 14px;
-  opacity: 0.85;
+  font-size: 16px;
+  font-weight: bold;
+  color: white;
   letter-spacing: 1px;
   margin-top: 5px;
 }
@@ -171,6 +218,23 @@ body::before {
   justify-content: center;
   margin-bottom: 40px;
   flex-wrap: wrap;
+  position: relative;
+}
+
+.limited-badge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(45deg, var(--red), #ff6a00);
+  color: white;
+  font-weight: bold;
+  padding: 6px 20px;
+  border-radius: 20px;
+  font-size: 14px;
+  box-shadow: 0 4px 12px rgba(255, 0, 0, 0.4);
+  z-index: 10;
+  animation: pulse-red 2s infinite;
 }
 
 .price-card {
@@ -183,6 +247,7 @@ body::before {
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }
 
 .price-card:hover {
@@ -224,6 +289,8 @@ body::before {
 .price-card:nth-child(2) {
   background: linear-gradient(145deg, rgba(197, 156, 51, 0.15), rgba(0,77,64,0.4));
   border: 1px solid var(--gold);
+  transform: scale(1.05);
+  box-shadow: 0 0 20px rgba(245, 197, 66, 0.5);
 }
 
 .price-card:nth-child(2) strong {
@@ -280,6 +347,32 @@ body::before {
   border-radius: 18px;
   padding: 20px;
   border: 1px solid var(--glass-border);
+  position: relative;
+  overflow: hidden;
+}
+
+.gift::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(45deg, rgba(255, 0, 0, 0.1), transparent);
+  z-index: 0;
+}
+
+.gift-badge {
+  position: absolute;
+  top: -10px;
+  right: -30px;
+  background: var(--red);
+  color: white;
+  padding: 20px 40px;
+  transform: rotate(45deg);
+  font-size: 12px;
+  font-weight: bold;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
 }
 
 .gift img {
@@ -287,6 +380,8 @@ body::before {
   border-radius: 12px;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
   animation: float 3s ease-in-out infinite;
+  position: relative;
+  z-index: 1;
 }
 
 @keyframes float {
@@ -296,6 +391,8 @@ body::before {
 
 .gift-content {
   flex: 1;
+  position: relative;
+  z-index: 1;
 }
 
 .gift-content div:first-child {
@@ -349,6 +446,7 @@ body::before {
   border-radius: 18px;
   padding: 30px;
   border: 1px solid var(--glass-border);
+  position: relative;
 }
 
 .form-section h3 {
@@ -444,32 +542,46 @@ body::before {
 
 .qr-container {
   text-align: center;
-  margin: 15px 0;
+  margin: 25px 0;
+  padding: 25px;
+  background: rgba(255, 0, 0, 0.15);
+  border-radius: 15px;
+  border: 2px dashed var(--gold);
+  position: relative;
 }
 
-.qr-container p {
-  margin-bottom: 10px;
-  font-weight: 500;
-  color: var(--gold-light);
+.qr-highlight {
+  color: #ff0000;
+  font-weight: bold;
+  font-size: 22px;
+  margin-bottom: 15px;
+  text-shadow: 0 0 5px rgba(255, 0, 0, 0.5);
+  animation: flash 1.5s infinite;
 }
 
 #payQr {
-  width: 180px;
-  height: 180px;
+  width: 380px;
+  height: 400px;
   display: block;
   margin: 0 auto 15px;
   border-radius: 12px;
-  border: 1px solid var(--glass-border);
+  border: 3px solid #ff0000;
   background: white;
-  padding: 10px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  padding: 15px;
+  box-shadow: 0 8px 25px rgba(255, 0, 0, 0.3);
+  animation: glow 2s infinite alternate;
+}
+
+@keyframes glow {
+  from { box-shadow: 0 0 10px #ff0000; }
+  to { box-shadow: 0 0 20px #ff0000, 0 0 30px #ff0000; }
 }
 
 .submit-btn {
   width: 100%;
   padding: 18px;
-  background: linear-gradient(145deg, var(--gold), var(--gold-dark));
-  color: var(--green);
+  background: linear-gradient(145deg, var(--red), var(--red-dark));
+  color: white;
   border: none;
   border-radius: 12px;
   font-size: 18px;
@@ -478,17 +590,34 @@ body::before {
   transition: all 0.3s ease;
   margin-top: 10px;
   letter-spacing: 1px;
-  box-shadow: 0 5px 15px rgba(245, 197, 66, 0.3);
+  box-shadow: 0 5px 15px rgba(255, 0, 0, 0.4);
+  position: relative;
+  overflow: hidden;
 }
 
 .submit-btn:hover {
-  background: linear-gradient(145deg, var(--gold-light), var(--gold));
+  background: linear-gradient(145deg, var(--red-light), var(--red));
   transform: translateY(-3px);
-  box-shadow: 0 8px 20px rgba(245, 197, 66, 0.4);
+  box-shadow: 0 8px 20px rgba(255, 0, 0, 0.5);
 }
 
 .submit-btn:active {
   transform: translateY(1px);
+}
+
+.submit-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: 0.5s;
+}
+
+.submit-btn:hover::before {
+  left: 100%;
 }
 
 .toast {
@@ -522,6 +651,7 @@ body::before {
   .gift { flex-direction: column; text-align: center; }
   .gift img { width: 140px; }
   .address button { width: 100%; max-width: 300px; }
+  #payQr { width: 200px; height: 200px; }
 }
 
 @media (max-width: 480px) {
@@ -534,6 +664,7 @@ body::before {
   .benefit p { padding-left: 0; }
   .form-section { padding: 20px 15px; }
   .submit-btn { padding: 16px; font-size: 16px; }
+  #payQr { width: 180px; height: 180px; }
 }
 
 /* 滚动条样式 */
@@ -603,15 +734,20 @@ body::before {
 <div id="scroll-container">
   <div class="container">
     <div class="head">
+      <div class="sale-badge">限时抢购</div>
       <h1>师恩难忘</h1>
       <p>致敬师者·健康同行 | 2025 教师节专属健身福利卡</p>
     </div>
 
     <!-- 倒计时 -->
-    <div class="countdown-box" id="countdown"></div>
+    <div class="countdown-box">
+      <div class="countdown-title">距离活动结束仅剩</div>
+      <div id="countdown"></div>
+    </div>
 
     <!-- 价格卡片 -->
     <div class="price-box">
+      <div class="limited-badge">限量抢购</div>
       <div class="price-card">
         <del>原价 1839 元</del>
         <strong>985 元</strong>
@@ -638,6 +774,7 @@ body::before {
 
     <!-- 羊驼凳 -->
     <div class="gift">
+      <div class="gift-badge">限量</div>
       <img src="https://img0.baidu.com/it/u=2836893172,415776004&fm=253&app=138&f=JPEG?w=500&h=500" alt="羊驼凳">
       <div class="gift-content">
         <div>限量羊驼凳</div>
@@ -686,7 +823,7 @@ body::before {
         <div class="form-group">
           <label><i class="fas fa-qrcode"></i>支付二维码</label>
           <div class="qr-container">
-            <p>扫码支付后上传截图</p>
+            <div class="qr-highlight">请扫码支付后上传截图</div>
             <img id="payQr" src="" alt="支付二维码">
           </div>
           <label class="required"><i class="fas fa-file-image"></i>支付截图</label>
