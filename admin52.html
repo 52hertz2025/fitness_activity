@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>活动管理 - 52hertz</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+body{background:#0f172a;color:#e2e8f0;padding:20px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif;}
+h2{text-align:center;margin-bottom:20px;color:#7dd3fc;}
+.wrap{max-width:1200px;margin:auto;background:rgba(15,23,42,.7);backdrop-filter:blur(12px);border-radius:12px;padding:20px;border:1px solid rgba(56,189,248,.2);}
+.toolbar{display:flex;gap:10px;margin-bottom:15px;flex-wrap:wrap;}
+.toolbar input,.toolbar select{padding:8px 10px;border-radius:6px;border:1px solid rgba(56,189,248,.3);background:rgba(8,47,73,.5);color:#e2e8f0;}
+button{padding:8px 14px;border:none;border-radius:6px;background:#0ea5e9;color:#fff;cursor:pointer;}button:hover{background:#0284c7;}
+table{width:100%;border-collapse:collapse;font-size:14px;}th,td{padding:10px;border:1px solid rgba(56,189,248,.2);text-align:center;}
+th{background:rgba(8,47,73,.7);color:#7dd3fc;}tr:nth-child(even){background:rgba(8,47,73,.3);}
+.actions button{margin:0 4px;padding:4px 8px;font-size:12px;} .btn-confirm{background:#22c55e;} .btn-edit{background:#0ea5e9;} .btn-del{background:#ef4444;}
+.pagination{display:flex;justify-content:center;gap:8px;margin-top:15px;}
+.toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(15,23,42,.9);color:#e2e8f0;padding:12px 20px;border-radius:8px;display:none;z-index:999;backdrop-filter:blur(10px);border:1px solid rgba(56,189,248,.3);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h2>教师节活动报名管理</h2>
+  <div class="toolbar">
+    <input id="search" placeholder="姓名 / 手机号">
+    <select id="filterCoach"><option value="">全部教练</option><option>武教练</option><option>蔺教练</option><option>周教练</option><option>陈教练</option><option>任教练</option></select>
+    <select id="filterStatus"><option value="">全部状态</option><option value="0">待确认</option><option value="1">已确认</option></select>
+    <button id="btnSearch">查询</button><button id="btnExport">导出CSV</button>
+  </div>
+  <table><thead>
+    <tr><th>姓名</th><th>手机号</th><th>教练</th><th>报名时间</th><th>状态</th><th>支付截图</th><th>操作</th></tr>
+  </thead><tbody id="tbody"></tbody></table>
+  <div class="pagination" id="pagination"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const _supabase = supabase.createClient(
+  'https://felxoutuqbkwitzcmdvo.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZlbHhvdXR1cWJrd2l0emNtZHZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcxNDUxNTAsImV4cCI6MjA3MjcyMTE1MH0.SATJ4P-quvK8Y_jPVGipRc8s2GCZBRktV9r_XnzM730'
+);
+let page=1,pageSize=20,total=0;
+const searchEl=document.getElementById('search'),coachEl=document.getElementById('filterCoach'),statusEl=document.getElementById('filterStatus');
+
+async function fetchData(){
+  let query=_supabase.from('teacher_reg').select('*',{count:'exact'}).order('created_at',{ascending:false}).range((page-1)*pageSize,page*pageSize-1);
+  const kw=searchEl.value.trim();
+  if(kw)query=query.or(`name.ilike.%${kw}%,phone.ilike.%${kw}%`);
+  if(coachEl.value)query=query.eq('coach',coachEl.value);
+  if(statusEl.value!=='')query=query.eq('confirmed',parseInt(statusEl.value));
+  const {data,count,error}=await query;
+  if(error)return showToast('读取失败');
+  total=count;renderTable(data);renderPage();
+}
+function renderTable(rows){
+  document.getElementById('tbody').innerHTML=rows.map(r=>`
+    <tr>
+      <td>${r.name}</td><td>${r.phone}</td><td>${r.coach||'-'}</td>
+      <td>${new Date(r.created_at).toLocaleString('zh-CN')}</td>
+      <td>${r.confirmed?'已确认':'待确认'}</td>
+      <td>${r.pay_proof?`<button onclick="viewProof('${r.pay_proof}')">查看</button>`:`-`}</td>
+      <td class="actions">
+        ${!r.confirmed?`<button class="btn-confirm" onclick="confirmRow('${r.id}')">确认</button>`:''}
+        <button class="btn-edit" onclick="editRow('${r.id}','${r.name}','${r.phone}','${r.coach}')">编辑</button>
+        <button class="btn-del" onclick="delRow('${r.id}')">删除</button>
+      </td>
+    </tr>`).join('');
+}
+function renderPage(){
+  const pages=Math.ceil(total/pageSize);
+  let html='';
+  for(let i=1;i<=pages;i++)html+=`<button class="${i===page?'active':''}" onclick="goPage(${i})">${i}</button>`;
+  document.getElementById('pagination').innerHTML=html;
+}
+function goPage(p){page=p;fetchData();}
+async function confirmRow(id){
+  const {error}=await _supabase.from('teacher_reg').update({confirmed:true}).eq('id',id);
+  if(error)return showToast('确认失败');showToast('已确认');fetchData();
+}
+async function editRow(id,n,p,c){
+  const name=prompt('姓名',n),phone=prompt('手机号',p),coach=prompt('教练',c||'');
+  if(name===null||phone===null)return;
+  if(!name.trim()||!phone.trim())return showToast('姓名和手机号必填');
+  const {error}=await _supabase.from('teacher_reg').update({name:name.trim(),phone:phone.trim(),coach:coach.trim()}).eq('id',id);
+  if(error)return showToast('更新失败');showToast('已更新');fetchData();
+}
+async function delRow(id){
+  if(!confirm('确定删除？'))return;
+  const {error}=await _supabase.from('teacher_reg').delete().eq('id',id);
+  if(error)return showToast('删除失败');showToast('已删除');fetchData();
+}
+function viewProof(path){
+  const url=`https://felxoutuqbkwitzcmdvo.supabase.co/storage/v1/object/public/photo/${path}`;
+  window.open(url,'_blank','width=800,height=600');
+}
+document.getElementById('btnSearch').onclick=()=>{page=1;fetchData();};
+document.getElementById('btnExport').onclick=async()=>{
+  const {data,error}=await _supabase.from('teacher_reg').select('*').order('created_at',{ascending:false});
+  if(error)return showToast('导出失败');
+  const csv=['姓名,手机号,教练,报名时间,状态,支付截图路径'].concat(data.map(r=>[r.name,r.phone,r.coach||'-',new Date(r.created_at).toLocaleString('zh-CN'),r.confirmed?'已确认':'待确认',r.pay_proof||''].join(','))).join('\n');
+  const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='teacher_reg_'+new Date().toISOString().slice(0,10)+'.csv';a.click();URL.revokeObjectURL(url);
+};
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';setTimeout(()=>t.style.display='none',2000);}
+fetchData();
+</script>
+</body>
+</html>
