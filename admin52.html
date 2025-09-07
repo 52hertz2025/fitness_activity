@@ -17,11 +17,99 @@ th{background:rgba(8,47,73,.7);color:#7dd3fc;}tr:nth-child(even){background:rgba
 .actions button{margin:0 4px;padding:4px 8px;font-size:12px;} .btn-confirm{background:#22c55e;} .btn-edit{background:#0ea5e9;} .btn-del{background:#ef4444;}
 .pagination{display:flex;justify-content:center;gap:8px;margin-top:15px;}
 .toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(15,23,42,.9);color:#e2e8f0;padding:12px 20px;border-radius:8px;display:none;z-index:999;backdrop-filter:blur(10px);border:1px solid rgba(56,189,248,.3);}
+
+/* 新增样式 */
+.payment-section {
+  background: rgba(8, 47, 73, 0.5);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.payment-section h3 {
+  color: #7dd3fc;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.qr-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+#currentQr {
+  max-width: 200px;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 8px;
+}
+
+.upload-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+#newQrPreview {
+  max-width: 200px;
+  display: none;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 8px;
+}
+
+/* 进度条样式 */
+.progress-bar {
+  width: 100%;
+  height: 10px;
+  background-color: rgba(56, 189, 248, 0.2);
+  border-radius: 5px;
+  overflow: hidden;
+  margin-top: 10px;
+  display: none;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background-color: #0ea5e9;
+  width: 0%;
+  transition: width 0.3s;
+}
+
+/* 错误信息样式 */
+.error-message {
+  color: #ef4444;
+  font-size: 14px;
+  margin-top: 10px;
+  text-align: center;
+}
 </style>
 </head>
 <body>
 <div class="wrap">
   <h2>教师节活动报名管理</h2>
+
+  <!-- 新增付款码管理区域 -->
+  <div class="payment-section">
+    <h3>付款码管理</h3>
+    <div class="qr-container">
+      <div>当前付款码:</div>
+      <img id="currentQr" src="" alt="当前付款码">
+      <div class="upload-controls">
+        <input type="file" id="newQrFile" accept="image/*" style="display: none;">
+        <button id="uploadQrBtn">上传新付款码</button>
+        <img id="newQrPreview" alt="新付款码预览">
+        <div class="progress-bar" id="progressBar">
+          <div class="progress-bar-fill" id="progressBarFill"></div>
+        </div>
+        <button id="saveQrBtn" style="display: none; background: #22c55e;">保存付款码</button>
+        <div id="qrError" class="error-message"></div>
+      </div>
+    </div>
+  </div>
+
   <div class="toolbar">
     <input id="search" placeholder="姓名 / 手机号">
     <select id="filterCoach"><option value="">全部教练</option><option>武教练</option><option>蔺教练</option><option>周教练</option><option>陈教练</option><option>任教练</option></select>
@@ -43,6 +131,156 @@ const _supabase = supabase.createClient(
 let page=1,pageSize=20,total=0;
 const searchEl=document.getElementById('search'),coachEl=document.getElementById('filterCoach'),statusEl=document.getElementById('filterStatus');
 
+// 新增付款码相关元素
+const currentQrEl = document.getElementById('currentQr');
+const newQrFileEl = document.getElementById('newQrFile');
+const uploadQrBtnEl = document.getElementById('uploadQrBtn');
+const newQrPreviewEl = document.getElementById('newQrPreview');
+const saveQrBtnEl = document.getElementById('saveQrBtn');
+const progressBar = document.getElementById('progressBar');
+const qrErrorEl = document.getElementById('qrError');
+
+// 初始化页面时加载当前付款码
+async function loadPaymentQr() {
+  try {
+    qrErrorEl.textContent = '';
+    const { data, error } = await _supabase
+      .from('activity_config')
+      .select('pay_qr')
+      .single();
+
+    if (error) throw error;
+
+    const supabaseProjectId = 'felxoutuqbkwitzcmdvo';
+    const bucketName = 'photo';
+    const supabasePublicPrefix = `https://${supabaseProjectId}.supabase.co/storage/v1/object/public/${bucketName}/`;
+
+    // 设置当前付款码图片URL
+    if (data && data.pay_qr) {
+      const timestamp = Date.now();
+      currentQrEl.src = `${supabasePublicPrefix}${data.pay_qr}?t=${timestamp}`;
+      currentQrEl.onload = function() {
+        console.log('付款码加载成功');
+      };
+      currentQrEl.onerror = function() {
+        this.src = 'data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 24 24"><rect fill="%23ccc" width="24" height="24"/><text x="12" y="16" font-family="Arial" font-size="10" text-anchor="middle" fill="%23666">付款码加载失败</text></svg>';
+      };
+    } else {
+      currentQrEl.src = 'data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 24 24"><rect fill="%23eee" width="24" height="24"/><text x="12" y="16" font-family="Arial" font-size="10" text-anchor="middle" fill="%23666">暂无付款码</text></svg>';
+    }
+  } catch (error) {
+    console.error('加载付款码失败:', error);
+    qrErrorEl.textContent = '加载付款码失败: ' + error.message;
+    currentQrEl.src = 'data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 24 24"><rect fill="%23ccc" width="24" height="24"/><text x="12" y="16" font-family="Arial" font-size="10" text-anchor="middle" fill="%23666">付款码加载失败</text></svg>';
+  }
+}
+
+// 上传新付款码按钮点击事件
+uploadQrBtnEl.addEventListener('click', () => {
+  newQrFileEl.click();
+});
+
+// 文件选择后预览
+newQrFileEl.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    qrErrorEl.textContent = '';
+
+    // 检查文件类型
+    if (!file.type.startsWith('image/')) {
+      qrErrorEl.textContent = '请选择图片文件';
+      return;
+    }
+
+    // 检查文件大小 (限制为5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      qrErrorEl.textContent = '文件大小不能超过5MB';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      newQrPreviewEl.src = event.target.result;
+      newQrPreviewEl.style.display = 'block';
+      saveQrBtnEl.style.display = 'block';
+      progressBar.style.display = 'none';
+    };
+    reader.onerror = () => {
+      qrErrorEl.textContent = '文件读取失败';
+    };
+    reader.readAsDataURL(file);
+  }
+});
+
+// 保存新付款码
+saveQrBtnEl.addEventListener('click', async () => {
+  const file = newQrFileEl.files[0];
+  if (!file) {
+    qrErrorEl.textContent = '请先选择图片文件';
+    return;
+  }
+
+  try {
+    qrErrorEl.textContent = '';
+    showToast('正在上传新付款码...');
+    progressBar.style.display = 'block';
+
+    // 生成文件名
+    const fileName = `pay_qr_${Date.now()}_${Math.floor(Math.random() * 1000)}.png`;
+
+    // 上传文件到存储桶
+    const { error: uploadError } = await _supabase
+      .storage
+      .from('photo')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: true
+      });
+
+    if (uploadError) throw uploadError;
+
+    // 更新数据库配置
+    const { error: upsertError } = await _supabase
+      .from('activity_config')
+      .upsert({
+        id: 1,
+        pay_qr: fileName
+      }, {
+        onConflict: 'id'
+      });
+
+    if (upsertError) throw upsertError;
+
+    // 更新页面显示
+    const supabaseProjectId = 'felxoutuqbkwitzcmdvo';
+    const bucketName = 'photo';
+    const supabasePublicPrefix = `https://${supabaseProjectId}.supabase.co/storage/v1/object/public/${bucketName}/`;
+    const timestamp = Date.now();
+    currentQrEl.src = `${supabasePublicPrefix}${fileName}?t=${timestamp}`;
+
+    // 重置上传控件
+    newQrFileEl.value = '';
+    newQrPreviewEl.style.display = 'none';
+    saveQrBtnEl.style.display = 'none';
+    progressBar.style.display = 'none';
+
+    showToast('付款码更新成功');
+  } catch (error) {
+    console.error('上传错误:', error);
+    progressBar.style.display = 'none';
+
+    let errorMsg = '更新失败: ';
+    if (error.message) {
+      errorMsg += error.message;
+    } else {
+      errorMsg += '未知错误';
+    }
+
+    qrErrorEl.textContent = errorMsg;
+    showToast(errorMsg);
+  }
+});
+
 async function fetchData(){
   let query=_supabase.from('teacher_reg').select('*',{count:'exact'}).order('created_at',{ascending:false}).range((page-1)*pageSize,page*pageSize-1);
   const kw=searchEl.value.trim();
@@ -50,9 +288,13 @@ async function fetchData(){
   if(coachEl.value)query=query.eq('coach',coachEl.value);
   if(statusEl.value!=='')query=query.eq('confirmed',parseInt(statusEl.value));
   const {data,count,error}=await query;
-  if(error)return showToast('读取失败');
+  if(error){
+    showToast('读取失败: ' + error.message);
+    return;
+  }
   total=count;renderTable(data);renderPage();
 }
+
 function renderTable(rows){
   document.getElementById('tbody').innerHTML=rows.map(r=>`
     <tr>
@@ -67,42 +309,95 @@ function renderTable(rows){
       </td>
     </tr>`).join('');
 }
+
 function renderPage(){
   const pages=Math.ceil(total/pageSize);
   let html='';
   for(let i=1;i<=pages;i++)html+=`<button class="${i===page?'active':''}" onclick="goPage(${i})">${i}</button>`;
   document.getElementById('pagination').innerHTML=html;
 }
+
 function goPage(p){page=p;fetchData();}
+
 async function confirmRow(id){
-  const {error}=await _supabase.from('teacher_reg').update({confirmed:true}).eq('id',id);
-  if(error)return showToast('确认失败');showToast('已确认');fetchData();
+  try {
+    const {error}=await _supabase.from('teacher_reg').update({confirmed:true}).eq('id',id);
+    if(error) throw error;
+    showToast('已确认');
+    fetchData();
+  } catch (error) {
+    showToast('确认失败: ' + error.message);
+  }
 }
+
 async function editRow(id,n,p,c){
   const name=prompt('姓名',n),phone=prompt('手机号',p),coach=prompt('教练',c||'');
   if(name===null||phone===null)return;
-  if(!name.trim()||!phone.trim())return showToast('姓名和手机号必填');
-  const {error}=await _supabase.from('teacher_reg').update({name:name.trim(),phone:phone.trim(),coach:coach.trim()}).eq('id',id);
-  if(error)return showToast('更新失败');showToast('已更新');fetchData();
+  if(!name.trim()||!phone.trim()){
+    showToast('姓名和手机号必填');
+    return;
+  }
+
+  try {
+    const {error}=await _supabase.from('teacher_reg').update({name:name.trim(),phone:phone.trim(),coach:coach.trim()}).eq('id',id);
+    if(error) throw error;
+    showToast('已更新');
+    fetchData();
+  } catch (error) {
+    showToast('更新失败: ' + error.message);
+  }
 }
+
 async function delRow(id){
   if(!confirm('确定删除？'))return;
-  const {error}=await _supabase.from('teacher_reg').delete().eq('id',id);
-  if(error)return showToast('删除失败');showToast('已删除');fetchData();
+
+  try {
+    const {error}=await _supabase.from('teacher_reg').delete().eq('id',id);
+    if(error) throw error;
+    showToast('已删除');
+    fetchData();
+  } catch (error) {
+    showToast('删除失败: ' + error.message);
+  }
 }
+
 function viewProof(path){
   const url=`https://felxoutuqbkwitzcmdvo.supabase.co/storage/v1/object/public/photo/${path}`;
   window.open(url,'_blank','width=800,height=600');
 }
+
 document.getElementById('btnSearch').onclick=()=>{page=1;fetchData();};
+
 document.getElementById('btnExport').onclick=async()=>{
-  const {data,error}=await _supabase.from('teacher_reg').select('*').order('created_at',{ascending:false});
-  if(error)return showToast('导出失败');
-  const csv=['姓名,手机号,教练,报名时间,状态,支付截图路径'].concat(data.map(r=>[r.name,r.phone,r.coach||'-',new Date(r.created_at).toLocaleString('zh-CN'),r.confirmed?'已确认':'待确认',r.pay_proof||''].join(','))).join('\n');
-  const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='teacher_reg_'+new Date().toISOString().slice(0,10)+'.csv';a.click();URL.revokeObjectURL(url);
+  try {
+    const {data,error}=await _supabase.from('teacher_reg').select('*').order('created_at',{ascending:false});
+    if(error) throw error;
+
+    const csv=['姓名,手机号,教练,报名时间,状态,支付截图路径'].concat(data.map(r=>[r.name,r.phone,r.coach||'-',new Date(r.created_at).toLocaleString('zh-CN'),r.confirmed?'已确认':'待确认',r.pay_proof||''].join(','))).join('\n');
+    const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download='teacher_reg_'+new Date().toISOString().slice(0,10)+'.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    showToast('导出失败: ' + error.message);
+  }
 };
-function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';setTimeout(()=>t.style.display='none',2000);}
-fetchData();
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.style.display='block';
+  setTimeout(()=>t.style.display='none',3000);
+}
+
+// 页面加载时初始化
+document.addEventListener('DOMContentLoaded', () => {
+  loadPaymentQr();
+  fetchData();
+});
 </script>
 </body>
 </html>
